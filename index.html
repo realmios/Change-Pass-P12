@@ -147,82 +147,75 @@ button:disabled{opacity:.6;cursor:not-allowed}
   </div>
 </div>
 <script>
-async function changePassword(){
+Async function changePassword(){
+  const file = document.getElementById('p12File').files[0];
+  const oldPass = document.getElementById('oldPass').value;
+  const newPass = document.getElementById('newPass').value;
+  const adminPass = document.getElementById('adminPass').value;
 
-  const _g=id=>document.getElementById(id);
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('btn');
 
-  const f=_g('p12File').files[0];
-  const o=_g('oldPass').value;
-  const n=_g('newPass').value;
-  const a=_g('adminPass').value;
+  msg.textContent = '';
 
-  const m=_g('msg');
-  const b=_g('btn');
-
-  m.textContent='';
-
-  /* ===== ADMIN CHECK (OBFUSCATED) ===== */
-  const _k = atob(['SE','Bp','MD','kw','OTE','1MD','k='].join(''));
-  if(a!==_k){
-    m.textContent='❌ Bạn không có quyền sử dụng công cụ này';
+  if(adminPass !== 'admin123'){
+    msg.textContent = '❌ Bạn không có quyền sử dụng công cụ này';
     return;
   }
 
-  if(!f) return m.textContent='❌ Chưa chọn file .p12';
-  if(!o) return m.textContent='❌ Chưa nhập mật khẩu cũ';
-  if(!n) return m.textContent='❌ Chưa nhập mật khẩu mới';
+  if(!file) return msg.textContent = '❌ Chưa chọn file .p12';
+  if(!oldPass) return msg.textContent = '❌ Chưa nhập mật khẩu cũ';
+  if(!newPass) return msg.textContent = '❌ Chưa nhập mật khẩu mới';
 
-  b.disabled=true;
-  b.textContent='Đang xử lý...';
+  btn.disabled = true;
+  btn.textContent = 'Đang xử lý...';
 
   try{
-    const buffer=await f.arrayBuffer();
+    const buffer = await file.arrayBuffer();
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    const asn1 = forge.asn1.fromDer(binary);
 
-    let binary='';
-    const bytes=new Uint8Array(buffer);
-    for(let i=0;i<bytes.length;i++){
-      binary+=String.fromCharCode(bytes[i]);
-    }
+    const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, oldPass);
 
-    const asn1=forge.asn1.fromDer(binary);
-    const p12=forge.pkcs12.pkcs12FromAsn1(asn1,o);
+    const keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+    const key = keyBag[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
 
-    const kBag=p12.getBags({bagType:forge.pki.oids.pkcs8ShroudedKeyBag});
-    const key=kBag[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
+    const certBag = p12.getBags({ bagType: forge.pki.oids.certBag });
+    const cert = certBag[forge.pki.oids.certBag][0].cert;
 
-    const cBag=p12.getBags({bagType:forge.pki.oids.certBag});
-    const cert=cBag[forge.pki.oids.certBag][0].cert;
-
-    const newAsn=forge.pkcs12.toPkcs12Asn1(
-      key,[cert],n,{algorithm:'3des'}
+    const newP12Asn1 = forge.pkcs12.toPkcs12Asn1(
+      key,
+      [cert],
+      newPass,
+      { algorithm:'3des' }
     );
 
-    const der=forge.asn1.toDer(newAsn).getBytes();
-    const out=new Uint8Array(der.length);
-    for(let i=0;i<der.length;i++){
-      out[i]=der.charCodeAt(i);
-    }
+    const der = forge.asn1.toDer(newP12Asn1).getBytes();
+    const bytes = new Uint8Array(der.length);
+    for(let i=0;i<der.length;i++) bytes[i] = der.charCodeAt(i);
 
-    const base=f.name.replace(/\.(p12|P12)$/,'');
-    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
-    const name=ios?`realmios-${base}.p12.bin`:`realmios-${base}.p12`;
+    const baseName = file.name.replace(/\.(p12|P12)$/,'');
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
-    const blob=new Blob([out],{type:'application/x-pkcs12'});
-    const aTag=document.createElement('a');
-    aTag.href=URL.createObjectURL(blob);
-    aTag.download=name;
-    aTag.click();
+    const fileName = isIOS
+      ? `realmios-${baseName}.p12.bin`
+      : `realmios-${baseName}.p12`;
 
-    m.className='success';
-    m.textContent='✅ Đổi mật khẩu thành công';
+    const blob = new Blob([bytes],{type:'application/x-pkcs12'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    a.click();
 
+    msg.className = 'success';
+    msg.textContent = '✅ Đổi mật khẩu thành công';
   }catch(e){
-    m.className='error';
-    m.textContent='❌ Sai mật khẩu cũ hoặc file không hợp lệ';
+    msg.className = 'error';
+    msg.textContent = '❌ Sai mật khẩu cũ hoặc file không hợp lệ';
   }
 
-  b.disabled=false;
-  b.textContent='Đổi mật khẩu & tải về';
+  btn.disabled = false;
+  btn.textContent = 'Đổi mật khẩu & tải về';
 }
 </script> 
 </body>
