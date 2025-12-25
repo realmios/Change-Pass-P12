@@ -158,7 +158,8 @@ Async function changePassword(){
 
   msg.textContent = '';
 
-  if(adminPass !== 'admin123'){
+  /* ===== ADMIN CHECK ===== */
+  if(adminPass !== 'realmiostool'){
     msg.textContent = '❌ Bạn không có quyền sử dụng công cụ này';
     return;
   }
