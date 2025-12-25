@@ -146,8 +146,9 @@ button:disabled{opacity:.6;cursor:not-allowed}
     Realmios Tool · Client-side only
   </div>
 </div>
+
 <script>
-Async function changePassword(){
+async function changePassword(){
   const file = document.getElementById('p12File').files[0];
   const oldPass = document.getElementById('oldPass').value;
   const newPass = document.getElementById('newPass').value;
@@ -159,7 +160,7 @@ Async function changePassword(){
   msg.textContent = '';
 
   /* ===== ADMIN CHECK ===== */
-  if(adminPass !== 'realmiostool'){
+  if(adminPass !== 'admin123'){
     msg.textContent = '❌ Bạn không có quyền sử dụng công cụ này';
     return;
   }
@@ -218,6 +219,6 @@ Async function changePassword(){
   btn.disabled = false;
   btn.textContent = 'Đổi mật khẩu & tải về';
 }
-</script> 
+</script>
 </body>
 </html>
