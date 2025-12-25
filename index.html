@@ -200,7 +200,7 @@ async function changePassword(){
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
     const fileName = isIOS
-      ? `realmios-${baseName}.p12.bin`
+      ? `realmios-${baseName}.p12`
       : `realmios-${baseName}.p12`;
 
     const blob = new Blob([bytes],{type:'application/x-pkcs12'});
