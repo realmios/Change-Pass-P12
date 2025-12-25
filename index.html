@@ -147,93 +147,83 @@ button:disabled{opacity:.6;cursor:not-allowed}
   </div>
 </div>
 <script>
-(function(_0x5a3d,_0x2c6b){
-  const _0x4e8a=function(_0x1d23){
-    while(--_0x1d23){
-      _0x5a3d['push'](_0x5a3d['shift']());
-    }
-  };
-  _0x4e8a(++_0x2c6b);
-}(_0x3b91,0x1a3));
+async function changePassword(){
 
-const _0x4f12=function(_0x2c6b,_0x5a3d){
-  _0x2c6b=_0x2c6b-0x0;
-  let _0x4e8a=_0x3b91[_0x2c6b];
-  return _0x4e8a;
-};
+  const _g=id=>document.getElementById(id);
 
-function changePassword(){
-  (async()=>{
-    const _f=document[_0x4f12('0x0')](_0x4f12('0x1'))[_0x4f12('0x2')][0x0];
-    const _o=document[_0x4f12('0x0')](_0x4f12('0x3'))[_0x4f12('0x4')];
-    const _n=document[_0x4f12('0x0')](_0x4f12('0x5'))[_0x4f12('0x4')];
-    const _a=document[_0x4f12('0x0')](_0x4f12('0x6'))[_0x4f12('0x4')];
+  const f=_g('p12File').files[0];
+  const o=_g('oldPass').value;
+  const n=_g('newPass').value;
+  const a=_g('adminPass').value;
 
-    const _m=document[_0x4f12('0x0')](_0x4f12('0x7'));
-    const _b=document[_0x4f12('0x0')](_0x4f12('0x8'));
+  const m=_g('msg');
+  const b=_g('btn');
 
-    _m[_0x4f12('0x9')] = '';
+  m.textContent='';
 
-    if(atob(_0x4f12('0xa')) !== _a){
-      _m[_0x4f12('0x9')] = '❌ Bạn không có quyền sử dụng công cụ này';
-      return;
-    }
+  /* ===== ADMIN CHECK (OBFUSCATED) ===== */
+  const _k = atob(['SE','Bp','MD','kw','OTE','1MD','k='].join(''));
+  if(a!==_k){
+    m.textContent='❌ Bạn không có quyền sử dụng công cụ này';
+    return;
+  }
 
-    if(!_f) return _m[_0x4f12('0x9')] = '❌ Chưa chọn file .p12';
-    if(!_o) return _m[_0x4f12('0x9')] = '❌ Chưa nhập mật khẩu cũ';
-    if(!_n) return _m[_0x4f12('0x9')] = '❌ Chưa nhập mật khẩu mới';
+  if(!f) return m.textContent='❌ Chưa chọn file .p12';
+  if(!o) return m.textContent='❌ Chưa nhập mật khẩu cũ';
+  if(!n) return m.textContent='❌ Chưa nhập mật khẩu mới';
 
-    _b[_0x4f12('0xb')] = true;
-    _b[_0x4f12('0x9')] = 'Đang xử lý...';
+  b.disabled=true;
+  b.textContent='Đang xử lý...';
 
-    try{
-      const _buf = await _f.arrayBuffer();
-      const _bin = String.fromCharCode(...new Uint8Array(_buf));
-      const _asn = forge.asn1.fromDer(_bin);
-      const _p12 = forge.pkcs12.pkcs12FromAsn1(_asn,_o);
+  try{
+    const buffer=await f.arrayBuffer();
 
-      const _kB = _p12.getBags({bagType:forge.pki.oids.pkcs8ShroudedKeyBag});
-      const _key = _kB[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
-
-      const _cB = _p12.getBags({bagType:forge.pki.oids.certBag});
-      const _crt = _cB[forge.pki.oids.certBag][0].cert;
-
-      const _newAsn = forge.pkcs12.toPkcs12Asn1(_key,[_crt],_n,{algorithm:'3des'});
-      const _der = forge.asn1.toDer(_newAsn).getBytes();
-      const _arr = new Uint8Array(_der.length);
-
-      for(let i=0;i<_der.length;i++) _arr[i]=_der.charCodeAt(i);
-
-      const _base=_f.name.replace(/\.(p12|P12)$/,'');
-      const _ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
-      const _name=_ios?`realmios-${_base}.p12.bin`:`realmios-${_base}.p12`;
-
-      const _blob=new Blob([_arr],{type:'application/x-pkcs12'});
-      const _a=document.createElement('a');
-      _a.href=URL.createObjectURL(_blob);
-      _a.download=_name;
-      _a.click();
-
-      _m.className='success';
-      _m[_0x4f12('0x9')]='✅ Đổi mật khẩu thành công';
-    }catch(e){
-      _m.className='error';
-      _m[_0x4f12('0x9')]='❌ Sai mật khẩu cũ hoặc file không hợp lệ';
+    let binary='';
+    const bytes=new Uint8Array(buffer);
+    for(let i=0;i<bytes.length;i++){
+      binary+=String.fromCharCode(bytes[i]);
     }
 
-    _b[_0x4f12('0xb')]=false;
-    _b[_0x4f12('0x9')]='Đổi mật khẩu & tải về';
-  })();
+    const asn1=forge.asn1.fromDer(binary);
+    const p12=forge.pkcs12.pkcs12FromAsn1(asn1,o);
+
+    const kBag=p12.getBags({bagType:forge.pki.oids.pkcs8ShroudedKeyBag});
+    const key=kBag[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
+
+    const cBag=p12.getBags({bagType:forge.pki.oids.certBag});
+    const cert=cBag[forge.pki.oids.certBag][0].cert;
+
+    const newAsn=forge.pkcs12.toPkcs12Asn1(
+      key,[cert],n,{algorithm:'3des'}
+    );
+
+    const der=forge.asn1.toDer(newAsn).getBytes();
+    const out=new Uint8Array(der.length);
+    for(let i=0;i<der.length;i++){
+      out[i]=der.charCodeAt(i);
+    }
+
+    const base=f.name.replace(/\.(p12|P12)$/,'');
+    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    const name=ios?`realmios-${base}.p12.bin`:`realmios-${base}.p12`;
+
+    const blob=new Blob([out],{type:'application/x-pkcs12'});
+    const aTag=document.createElement('a');
+    aTag.href=URL.createObjectURL(blob);
+    aTag.download=name;
+    aTag.click();
+
+    m.className='success';
+    m.textContent='✅ Đổi mật khẩu thành công';
+
+  }catch(e){
+    m.className='error';
+    m.textContent='❌ Sai mật khẩu cũ hoặc file không hợp lệ';
+  }
+
+  b.disabled=false;
+  b.textContent='Đổi mật khẩu & tải về';
 }
-
-function _0x3b91(){
-  return [
-    'getElementById','p12File','files',
-    'oldPass','value','newPass','adminPass',
-    'msg','btn','textContent','SEBpMDkwOTE1MDk=',
-    'disabled'
-  ];
-}
-</script>  
+</script> 
 </body>
 </html>
