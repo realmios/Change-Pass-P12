@@ -1,175 +1,202 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P12 Password Changer (Rebuild Mode)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; display: flex; justify-content: center; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
-        h2 { text-align: center; margin-top: 0; color: #333; }
-        .group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #log { margin-top: 20px; padding: 10px; background: #eee; border-radius: 4px; font-size: 13px; font-family: monospace; white-space: pre-wrap; display: none; }
-        .error { color: #d9534f; }
-        .success { color: #28a745; }
-    </style>
+<meta charset="UTF-8">
+<title>Đổi mật khẩu file P12 (Client-side)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Forge (PKCS#12 xử lý trên trình duyệt) -->
+<script src="https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js"></script>
+
+<style>
+:root{
+  --bg:#0f1220;
+  --card:#171a2b;
+  --text:#e8eaf6;
+  --muted:#9aa0ff;
+  --accent:#6c7cff;
+  --danger:#ff5f5f;
+}
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
+body{
+  margin:0;
+  background:linear-gradient(135deg,#0f1220,#1b1f3b);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+}
+.container{
+  width:100%;
+  max-width:420px;
+  background:var(--card);
+  padding:22px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,.4);
+}
+h1{
+  font-size:20px;
+  margin:0 0 10px;
+  text-align:center;
+}
+.desc{
+  font-size:13px;
+  color:var(--muted);
+  text-align:center;
+  margin-bottom:18px;
+}
+.field{
+  margin-bottom:14px;
+}
+label{
+  display:block;
+  font-size:13px;
+  margin-bottom:6px;
+}
+input[type="file"],
+input[type="password"]{
+  width:100%;
+  padding:11px 12px;
+  border-radius:10px;
+  border:1px solid #2a2f55;
+  background:#10132a;
+  color:var(--text);
+}
+input::placeholder{color:#6d72b5}
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:var(--accent);
+  color:#fff;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+}
+button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+.notice{
+  margin-top:14px;
+  font-size:12px;
+  color:#b8bcff;
+  background:#10132a;
+  padding:10px;
+  border-radius:10px;
+  line-height:1.5;
+}
+.error{
+  color:var(--danger);
+  font-size:13px;
+  margin-top:10px;
+  text-align:center;
+}
+.footer{
+  margin-top:14px;
+  text-align:center;
+  font-size:11px;
+  opacity:.6;
+}
+</style>
 </head>
+
 <body>
+<div class="container">
+  <h1>🔐 Đổi mật khẩu file .P12</h1>
+  <div class="desc">
+    File được xử lý <b>100% trong trình duyệt</b><br>
+    Không upload – Không lưu trữ
+  </div>
 
-<div class="card">
-    <h2>Đổi Mật Khẩu P12</h2>
-    
-    <div class="group">
-        <label>1. Chọn File .p12</label>
-        <input type="file" id="fileIn" accept=".p12,.pfx">
-    </div>
+  <div class="field">
+    <label>Chọn file .p12</label>
+    <input type="file" id="p12File" accept=".p12">
+  </div>
 
-    <div class="group">
-        <label>2. Mật khẩu CŨ</label>
-        <input type="password" id="passOld" placeholder="Mật khẩu hiện tại của file">
-    </div>
+  <div class="field">
+    <label>Mật khẩu hiện tại</label>
+    <input type="password" id="oldPass" placeholder="Nhập mật khẩu cũ">
+  </div>
 
-    <div class="group">
-        <label>3. Mật khẩu MỚI</label>
-        <input type="text" id="passNew" placeholder="Mật khẩu mới muốn đặt">
-    </div>
+  <div class="field">
+    <label>Mật khẩu mới</label>
+    <input type="password" id="newPass" placeholder="Nhập mật khẩu mới">
+  </div>
 
-    <button id="btnAction" onclick="processFile()">Xử lý & Tải về</button>
-    
-    <div id="log"></div>
+  <button id="btn" onclick="changePassword()">Đổi mật khẩu & tải về</button>
+
+  <div class="error" id="msg"></div>
+
+  <div class="notice">
+    ⚠️ Khuyến cáo bảo mật:<br>
+    • Không sử dụng trên máy công cộng<br>
+    • Private key không rời khỏi thiết bị<br>
+    • Refresh trang sau khi hoàn tất
+  </div>
+
+  <div class="footer">
+    Client-side P12 Tool · Free
+  </div>
 </div>
 
 <script>
-    function log(msg, type = 'info') {
-        const logDiv = document.getElementById('log');
-        logDiv.style.display = 'block';
-        const color = type === 'error' ? 'red' : (type === 'success' ? 'green' : 'black');
-        logDiv.innerHTML += `<div style="color:${color}; margin-bottom: 4px;">- ${msg}</div>`;
-    }
+async function changePassword(){
+  const file = document.getElementById('p12File').files[0];
+  const oldPass = document.getElementById('oldPass').value;
+  const newPass = document.getElementById('newPass').value;
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('btn');
 
-    function clearLog() {
-        document.getElementById('log').innerHTML = '';
-        document.getElementById('log').style.display = 'none';
-    }
+  msg.textContent = '';
 
-    function processFile() {
-        clearLog();
-        const fileInput = document.getElementById('fileIn');
-        const pOld = document.getElementById('passOld').value;
-        const pNew = document.getElementById('passNew').value;
+  if(!file) return msg.textContent = '❌ Chưa chọn file .p12';
+  if(!oldPass) return msg.textContent = '❌ Chưa nhập mật khẩu cũ';
+  if(!newPass) return msg.textContent = '❌ Chưa nhập mật khẩu mới';
 
-        if (fileInput.files.length === 0) {
-            log("Vui lòng chọn file trước!", 'error');
-            return;
-        }
+  btn.disabled = true;
+  btn.textContent = 'Đang xử lý...';
 
-        const file = fileInput.files[0];
-        log("Đang đọc file: " + file.name);
+  try{
+    const buffer = await file.arrayBuffer();
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    const asn1 = forge.asn1.fromDer(binary);
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                // 1. Convert file sang định dạng Forge hiểu
-                const fileBuffer = e.target.result;
-                const p12Der = forge.util.createBuffer(fileBuffer);
-                const p12Asn1 = forge.asn1.fromDer(p12Der);
-                
-                log("Đã đọc cấu trúc file. Đang giải mã...");
+    const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, oldPass);
 
-                // 2. Mở file P12 cũ
-                // Dùng try-catch riêng cho đoạn này để bắt lỗi sai pass
-                let p12;
-                try {
-                    p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, pOld || "");
-                } catch (decErr) {
-                    console.error(decErr);
-                    log("LỖI: Mật khẩu cũ không đúng hoặc file bị mã hóa bằng thuật toán lạ (OpenSSL 3+).", 'error');
-                    return;
-                }
+    const keyBag = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+    const key = keyBag[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
 
-                log("Giải mã thành công! Đang trích xuất Key & Cert...");
+    const certBag = p12.getBags({ bagType: forge.pki.oids.certBag });
+    const cert = certBag[forge.pki.oids.certBag][0].cert;
 
-                // 3. TRÍCH XUẤT DỮ LIỆU (QUAN TRỌNG)
-                // Thay vì copy nội dung, ta lấy hẳn Key và Cert ra
-                
-                // Lấy Private Key
-                let keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
-                let privateKey = null;
-                // Nếu không tìm thấy ở pkcs8, thử tìm ở keyBag thường
-                if (!keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]) {
-                     keyBags = p12.getBags({ bagType: forge.pki.oids.keyBag });
-                     if (keyBags[forge.pki.oids.keyBag]) {
-                         privateKey = keyBags[forge.pki.oids.keyBag][0].key;
-                     }
-                } else {
-                    privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
-                }
+    const newP12Asn1 = forge.pkcs12.toPkcs12Asn1(
+      key,
+      [cert],
+      newPass,
+      { algorithm: '3des' }
+    );
 
-                if (!privateKey) {
-                    log("Lỗi: Không tìm thấy Private Key trong file này.", 'error');
-                    return;
-                }
+    const der = forge.asn1.toDer(newP12Asn1).getBytes();
+    const bytes = new Uint8Array(der.length);
+    for(let i=0;i<der.length;i++) bytes[i] = der.charCodeAt(i);
 
-                // Lấy Certificate Chain
-                let certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
-                let chain = [];
-                if (certBags[forge.pki.oids.certBag]) {
-                    certBags[forge.pki.oids.certBag].forEach(function(bag) {
-                        chain.push(bag.cert);
-                    });
-                }
+    const blob = new Blob([bytes],{type:'application/x-pkcs12'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'changed-password.p12';
+    a.click();
 
-                log(`Đã tìm thấy Key và ${chain.length} chứng chỉ.`);
-                log("Đang đóng gói file P12 mới...");
+    msg.textContent = '✅ Đổi mật khẩu thành công';
+  }catch(e){
+    msg.textContent = '❌ Sai mật khẩu cũ hoặc file không hợp lệ';
+  }
 
-                // 4. TẠO FILE P12 MỚI (REBUILD)
-                // Sử dụng hàm toPkcs12Asn1 chuẩn của Forge
-                const newP12Asn1 = forge.pkcs12.toPkcs12Asn1(
-                    privateKey, 
-                    chain, 
-                    pNew, 
-                    {
-                        algorithm: '3des', // Dùng 3DES để tương thích tốt nhất
-                        generateLocalKeyId: true,
-                        friendlyName: 'New P12 File'
-                    }
-                );
-
-                // 5. Tải về
-                const newP12Der = forge.asn1.toDer(newP12Asn1).getBytes();
-                const newP12Buffer = new Uint8Array(newP12Der.length);
-                for (let i = 0; i < newP12Der.length; i++) {
-                    newP12Buffer[i] = newP12Der.charCodeAt(i);
-                }
-
-                const blob = new Blob([newP12Buffer], { type: 'application/x-pkcs12' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'NEW_' + file.name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-
-                log("XONG! File đã được tải xuống.", 'success');
-
-            } catch (err) {
-                console.error(err);
-                log("Lỗi không xác định: " + err.message, 'error');
-                log("Hãy nhấn F12, chụp màn hình tab Console gửi để được hỗ trợ.", 'error');
-            }
-        };
-
-        // Đọc dưới dạng ArrayBuffer (Chuẩn nhất cho file binary)
-        reader.readAsArrayBuffer(file);
-    }
+  btn.disabled = false;
+  btn.textContent = 'Đổi mật khẩu & tải về';
+}
 </script>
-
 </body>
 </html>
