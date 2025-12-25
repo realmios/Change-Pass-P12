@@ -2,10 +2,10 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Đổi mật khẩu file P12 (Client-side)</title>
+<title>Realmios P12 Password Tool</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Forge (PKCS#12 xử lý trên trình duyệt) -->
+<!-- Forge -->
 <script src="https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js"></script>
 
 <style>
@@ -20,8 +20,8 @@
 *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
 body{
   margin:0;
-  background:linear-gradient(135deg,#0f1220,#1b1f3b);
   min-height:100vh;
+  background:linear-gradient(135deg,#0f1220,#1b1f3b);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -29,26 +29,24 @@ body{
 }
 .container{
   width:100%;
-  max-width:420px;
+  max-width:440px;
   background:var(--card);
   padding:22px;
   border-radius:16px;
-  box-shadow:0 20px 40px rgba(0,0,0,.4);
+  box-shadow:0 20px 40px rgba(0,0,0,.45);
 }
 h1{
+  text-align:center;
   font-size:20px;
   margin:0 0 10px;
-  text-align:center;
 }
 .desc{
+  text-align:center;
   font-size:13px;
   color:var(--muted);
-  text-align:center;
   margin-bottom:18px;
 }
-.field{
-  margin-bottom:14px;
-}
+.field{margin-bottom:14px}
 label{
   display:block;
   font-size:13px;
@@ -75,9 +73,18 @@ button{
   font-weight:600;
   cursor:pointer;
 }
-button:disabled{
-  opacity:.6;
-  cursor:not-allowed;
+button:disabled{opacity:.6;cursor:not-allowed}
+.error{
+  margin-top:12px;
+  font-size:13px;
+  text-align:center;
+  color:var(--danger);
+}
+.success{
+  margin-top:12px;
+  font-size:13px;
+  text-align:center;
+  color:#7dff9c;
 }
 .notice{
   margin-top:14px;
@@ -87,12 +94,6 @@ button:disabled{
   padding:10px;
   border-radius:10px;
   line-height:1.5;
-}
-.error{
-  color:var(--danger);
-  font-size:13px;
-  margin-top:10px;
-  text-align:center;
 }
 .footer{
   margin-top:14px;
@@ -105,10 +106,10 @@ button:disabled{
 
 <body>
 <div class="container">
-  <h1>🔐 Đổi mật khẩu file .P12</h1>
+  <h1>🔐 Realmios P12 Tool</h1>
   <div class="desc">
-    File được xử lý <b>100% trong trình duyệt</b><br>
-    Không upload – Không lưu trữ
+    Đổi mật khẩu file <b>.p12</b><br>
+    Xử lý 100% trong trình duyệt
   </div>
 
   <div class="field">
@@ -126,19 +127,23 @@ button:disabled{
     <input type="password" id="newPass" placeholder="Nhập mật khẩu mới">
   </div>
 
+  <div class="field">
+    <label>Mật khẩu Admin</label>
+    <input type="password" id="adminPass" placeholder="Chỉ dành cho admin">
+  </div>
+
   <button id="btn" onclick="changePassword()">Đổi mật khẩu & tải về</button>
 
-  <div class="error" id="msg"></div>
+  <div id="msg" class="error"></div>
 
   <div class="notice">
-    ⚠️ Khuyến cáo bảo mật:<br>
-    • Không sử dụng trên máy công cộng<br>
-    • Private key không rời khỏi thiết bị<br>
-    • Refresh trang sau khi hoàn tất
+    ⚠️ Lưu ý iOS:<br>
+    File tải về có đuôi <b>.bin</b><br>
+    👉 Đổi lại thành <b>.p12</b> sau khi tải
   </div>
 
   <div class="footer">
-    Client-side P12 Tool · Free
+    Realmios Tool · Client-side only
   </div>
 </div>
 
@@ -147,10 +152,18 @@ async function changePassword(){
   const file = document.getElementById('p12File').files[0];
   const oldPass = document.getElementById('oldPass').value;
   const newPass = document.getElementById('newPass').value;
+  const adminPass = document.getElementById('adminPass').value;
+
   const msg = document.getElementById('msg');
   const btn = document.getElementById('btn');
 
   msg.textContent = '';
+
+  /* ===== ADMIN CHECK ===== */
+  if(adminPass !== 'realmiostool'){
+    msg.textContent = '❌ Bạn không có quyền sử dụng công cụ này';
+    return;
+  }
 
   if(!file) return msg.textContent = '❌ Chưa chọn file .p12';
   if(!oldPass) return msg.textContent = '❌ Chưa nhập mật khẩu cũ';
@@ -176,21 +189,30 @@ async function changePassword(){
       key,
       [cert],
       newPass,
-      { algorithm: '3des' }
+      { algorithm:'3des' }
     );
 
     const der = forge.asn1.toDer(newP12Asn1).getBytes();
     const bytes = new Uint8Array(der.length);
     for(let i=0;i<der.length;i++) bytes[i] = der.charCodeAt(i);
 
+    const baseName = file.name.replace(/\.(p12|P12)$/,'');
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+    const fileName = isIOS
+      ? `realmios-${baseName}.p12.bin`
+      : `realmios-${baseName}.p12`;
+
     const blob = new Blob([bytes],{type:'application/x-pkcs12'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'changed-password.p12';
+    a.download = fileName;
     a.click();
 
+    msg.className = 'success';
     msg.textContent = '✅ Đổi mật khẩu thành công';
   }catch(e){
+    msg.className = 'error';
     msg.textContent = '❌ Sai mật khẩu cũ hoặc file không hợp lệ';
   }
 
